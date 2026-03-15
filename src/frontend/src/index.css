@@ -1,0 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Figtree:wght@300..900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0.97 0.012 85;
+    --foreground: 0.22 0.022 55;
+    --card: 0.99 0.005 80;
+    --card-foreground: 0.22 0.022 55;
+    --popover: 0.99 0.005 80;
+    --popover-foreground: 0.22 0.022 55;
+    --primary: 0.57 0.135 38;
+    --primary-foreground: 0.98 0.005 80;
+    --secondary: 0.92 0.04 148;
+    --secondary-foreground: 0.3 0.09 148;
+    --muted: 0.93 0.015 80;
+    --muted-foreground: 0.52 0.035 60;
+    --accent: 0.82 0.1 75;
+    --accent-foreground: 0.22 0.022 55;
+    --destructive: 0.58 0.18 25;
+    --destructive-foreground: 0.98 0.005 80;
+    --border: 0.88 0.015 80;
+    --input: 0.88 0.015 80;
+    --ring: 0.57 0.135 38;
+    --radius: 0.75rem;
+    --chart-1: 0.57 0.135 38;
+    --chart-2: 0.55 0.1 148;
+    --chart-3: 0.78 0.1 75;
+    --chart-4: 0.65 0.12 200;
+    --chart-5: 0.7 0.12 310;
+    --sidebar: 0.99 0.005 80;
+    --sidebar-foreground: 0.22 0.022 55;
+    --sidebar-primary: 0.57 0.135 38;
+    --sidebar-primary-foreground: 0.98 0.005 80;
+    --sidebar-accent: 0.93 0.015 80;
+    --sidebar-accent-foreground: 0.22 0.022 55;
+    --sidebar-border: 0.88 0.015 80;
+    --sidebar-ring: 0.57 0.135 38;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      oklch(0.22 0.022 55 / 0.3) 0%,
+      oklch(0.22 0.022 55 / 0.6) 60%,
+      oklch(0.22 0.022 55 / 0.75) 100%
+    );
+  }
+
+  .listing-card-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .listing-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px oklch(0.22 0.022 55 / 0.12);
+  }
+
+  .grain-overlay {
+    position: relative;
+  }
+
+  .grain-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}

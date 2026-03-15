@@ -1,0 +1,174 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Booking, BookingStatus, Listing, TaxiRoute } from "../backend";
+import { useActor } from "./useActor";
+
+export function useGetActiveListings() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Listing[]>({
+    queryKey: ["activeListings"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getActiveListings();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetActiveTaxiRoutes() {
+  const { actor, isFetching } = useActor();
+  return useQuery<TaxiRoute[]>({
+    queryKey: ["activeTaxiRoutes"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getActiveTaxiRoutes();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetListing(id: string) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Listing>({
+    queryKey: ["listing", id],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.getListing(id);
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}
+
+export function useGetAllBookings() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Booking[]>({
+    queryKey: ["allBookings"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllBookings();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useIsCallerAdmin() {
+  const { actor, isFetching } = useActor();
+  return useQuery<boolean>({
+    queryKey: ["isCallerAdmin"],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSubmitBooking() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (booking: Booking) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.submitBooking(booking);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allBookings"] }),
+  });
+}
+
+export function useCreateListing() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (listing: Listing) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.createListing(listing);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeListings"] }),
+  });
+}
+
+export function useUpdateListing() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, listing }: { id: string; listing: Listing }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateListing(id, listing);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeListings"] }),
+  });
+}
+
+export function useDeleteListing() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteListing(id);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeListings"] }),
+  });
+}
+
+export function useCreateTaxiRoute() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (route: TaxiRoute) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.createTaxiRoute(route);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeTaxiRoutes"] }),
+  });
+}
+
+export function useUpdateTaxiRoute() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, route }: { id: string; route: TaxiRoute }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateTaxiRoute(id, route);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeTaxiRoutes"] }),
+  });
+}
+
+export function useDeleteTaxiRoute() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteTaxiRoute(id);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["activeTaxiRoutes"] }),
+  });
+}
+
+export function useUpdateBookingStatus() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: { id: string; status: BookingStatus }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateBookingStatus(id, status);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allBookings"] }),
+  });
+}
+
+export function useDeleteBooking() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteBooking(id);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allBookings"] }),
+  });
+}
