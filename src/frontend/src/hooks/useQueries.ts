@@ -62,6 +62,18 @@ export function useIsCallerAdmin() {
   });
 }
 
+export function useClaimFirstAdmin() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.claimFirstAdmin();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["isCallerAdmin"] }),
+  });
+}
+
 export function useSubmitBooking() {
   const { actor } = useActor();
   const qc = useQueryClient();

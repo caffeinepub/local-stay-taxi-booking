@@ -12,6 +12,7 @@ import Navbar from "./components/Navbar";
 import AdminPage from "./pages/AdminPage";
 import HomePage from "./pages/HomePage";
 import ListingDetailPage from "./pages/ListingDetailPage";
+import RestaurantsPage from "./pages/RestaurantsPage";
 import StaysPage from "./pages/StaysPage";
 import TaxisPage from "./pages/TaxisPage";
 
@@ -53,6 +54,11 @@ const taxisRoute = createRoute({
   path: "/taxis",
   component: TaxisPage,
 });
+const restaurantsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/restaurants",
+  component: RestaurantsPage,
+});
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",
@@ -64,6 +70,7 @@ const routeTree = rootRoute.addChildren([
   staysRoute,
   listingDetailRoute,
   taxisRoute,
+  restaurantsRoute,
   adminRoute,
 ]);
 

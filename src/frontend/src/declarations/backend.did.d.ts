@@ -103,6 +103,7 @@ export interface _SERVICE {
   'getListing' : ActorMethod<[string], Listing>,
   'getTaxiRoute' : ActorMethod<[string], TaxiRoute>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'claimFirstAdmin' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitBooking' : ActorMethod<[Booking], Booking>,

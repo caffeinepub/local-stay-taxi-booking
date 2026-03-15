@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   type BookingStatus,
@@ -42,6 +43,7 @@ import {
 import type { Booking, Listing, TaxiRoute } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useClaimFirstAdmin,
   useCreateListing,
   useCreateTaxiRoute,
   useDeleteBooking,
@@ -63,7 +65,7 @@ interface ListingFormData {
   listingType: string;
   location: string;
   description: string;
-  amenities: string;
+  amenities: string[];
   pricePerNight: string;
   isActive: boolean;
   photos: ExternalBlob[];
@@ -74,7 +76,7 @@ const defaultListingForm = (): ListingFormData => ({
   listingType: "hotel",
   location: "",
   description: "",
-  amenities: "",
+  amenities: [],
   pricePerNight: "",
   isActive: true,
   photos: [],
@@ -100,7 +102,7 @@ function ListingFormDialog({
           listingType: existing.listingType as string,
           location: existing.location,
           description: existing.description,
-          amenities: existing.amenities.join(", "),
+          amenities: existing.amenities,
           pricePerNight: String(existing.pricePerNight),
           isActive: existing.isActive,
           photos: existing.photos,
@@ -148,10 +150,7 @@ function ListingFormDialog({
       listingType: form.listingType as ListingType,
       location: form.location,
       description: form.description,
-      amenities: form.amenities
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean),
+      amenities: form.amenities,
       pricePerNight: Number.parseFloat(form.pricePerNight) || 0,
       isActive: form.isActive,
       photos: form.photos,
@@ -208,11 +207,17 @@ function ListingFormDialog({
                 <SelectContent>
                   <SelectItem value="hotel">Hotel</SelectItem>
                   <SelectItem value="homestay">Homestay</SelectItem>
+                  <SelectItem value="restaurant">Restaurant</SelectItem>
+                  <SelectItem value="dhaba">Dhaba</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Price / night ($) *</Label>
+              <Label>
+                {["restaurant", "dhaba"].includes(form.listingType)
+                  ? "Price / person (₹) *"
+                  : "Price / night (₹) *"}
+              </Label>
               <Input
                 type="number"
                 min="0"
@@ -249,15 +254,48 @@ function ListingFormDialog({
             />
           </div>
           <div>
-            <Label>Amenities (comma-separated)</Label>
-            <Input
-              value={form.amenities}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, amenities: e.target.value }))
-              }
-              placeholder="WiFi, Breakfast, Parking"
-              data-ocid="listing.input"
-            />
+            <Label className="mb-2 block">Facilities / Amenities</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                "WiFi",
+                "Breakfast",
+                "Parking",
+                "AC",
+                "Geyser",
+                "Room Heater",
+                "Hot Water",
+                "Swimming Pool",
+                "Gym",
+                "Restaurant",
+                "Room Service",
+                "Laundry",
+                "TV",
+                "Kitchen",
+                "Garden View",
+                "Mountain View",
+              ].map((facility) => (
+                <label
+                  key={facility}
+                  htmlFor={`facility-${facility}`}
+                  className="flex items-center gap-2 cursor-pointer select-none"
+                >
+                  <Checkbox
+                    id={`facility-${facility}`}
+                    checked={form.amenities.includes(facility)}
+                    onCheckedChange={(checked) =>
+                      setForm((f) => ({
+                        ...f,
+                        amenities: checked
+                          ? [...f.amenities, facility]
+                          : f.amenities.filter((a) => a !== facility),
+                      }))
+                    }
+                    data-ocid={"listing.checkbox"}
+                  />
+                  <span className="text-sm">{facility}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Switch
@@ -473,7 +511,7 @@ function TaxiFormDialog({
               </Select>
             </div>
             <div>
-              <Label>Rate ($) *</Label>
+              <Label>Rate (₹) *</Label>
               <Input
                 type="number"
                 min="0"
@@ -683,7 +721,9 @@ function ListingsTab() {
                   <TableCell className="text-muted-foreground text-sm">
                     {l.location}
                   </TableCell>
-                  <TableCell>${l.pricePerNight}</TableCell>
+                  <TableCell>
+                    ₹{l.pricePerNight.toLocaleString("en-IN")}
+                  </TableCell>
                   <TableCell>
                     {l.isActive ? (
                       <Check className="w-4 h-4 text-green-600" />
@@ -817,7 +857,7 @@ function TaxiRoutesTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    ${r.rate}
+                    ₹{r.rate.toLocaleString("en-IN")}
                     {(r.rateType as string) === "perKm" ? "/km" : ""}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -880,6 +920,133 @@ const STATUS_COLORS: Record<string, string> = {
   confirmed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-destructive/10 text-destructive border-destructive/20",
 };
+
+function RestaurantsAdminTab() {
+  const { data: listings, isLoading } = useGetActiveListings();
+  const [editListing, setEditListing] = useState<Listing | undefined>();
+  const [showAdd, setShowAdd] = useState(false);
+  const deleteListing = useDeleteListing();
+
+  const restaurants = (listings ?? []).filter(
+    (l) =>
+      (l.listingType as string) === "restaurant" ||
+      (l.listingType as string) === "dhaba",
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-lg">Restaurants & Dhabas</h2>
+        <Button
+          size="sm"
+          onClick={() => setShowAdd(true)}
+          data-ocid="admin.primary_button"
+        >
+          <Plus className="w-4 h-4 mr-1" /> Add Restaurant
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2" data-ocid="restaurants.loading_state">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 rounded-lg" />
+          ))}
+        </div>
+      ) : !restaurants.length ? (
+        <div
+          className="text-center py-12 text-muted-foreground"
+          data-ocid="restaurants.empty_state"
+        >
+          No restaurants yet. Add one to get started.
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <Table data-ocid="restaurants.table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Photo</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Price/person</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {restaurants.map((l, i) => (
+                <TableRow key={l.id} data-ocid={`restaurants.row.${i + 1}`}>
+                  <TableCell>
+                    {l.photos[0] ? (
+                      <img
+                        src={l.photos[0].getDirectURL()}
+                        alt=""
+                        className="w-12 h-10 object-cover rounded-md"
+                      />
+                    ) : (
+                      <div className="w-12 h-10 bg-muted rounded-md" />
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">{l.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="capitalize">
+                      {l.listingType as string}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {l.location}
+                  </TableCell>
+                  <TableCell>
+                    ₹{l.pricePerNight.toLocaleString("en-IN")}
+                  </TableCell>
+                  <TableCell>
+                    {l.isActive ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setEditListing(l)}
+                        data-ocid={`restaurants.edit_button.${i + 1}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => deleteListing.mutate(l.id)}
+                        data-ocid={`restaurants.delete_button.${i + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {showAdd && (
+        <ListingFormDialog open={showAdd} onClose={() => setShowAdd(false)} />
+      )}
+      {editListing && (
+        <ListingFormDialog
+          open={!!editListing}
+          onClose={() => setEditListing(undefined)}
+          existing={editListing}
+        />
+      )}
+    </div>
+  );
+}
 
 function BookingsTab() {
   const { data: bookings, isLoading } = useGetAllBookings();
@@ -991,7 +1158,9 @@ function BookingsTab() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">${b.totalPrice}</TableCell>
+                  <TableCell className="font-medium">
+                    ₹{b.totalPrice.toLocaleString("en-IN")}
+                  </TableCell>
                   <TableCell>
                     <Select
                       value={b.status as string}
@@ -1043,8 +1212,17 @@ function BookingsTab() {
 export default function AdminPage() {
   const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
   const { login, clear, loginStatus, identity } = useInternetIdentity();
+  const claimFirstAdmin = useClaimFirstAdmin();
   const qc = useQueryClient();
   const isAuthenticated = !!identity;
+
+  // Auto-claim admin role when authenticated but not yet admin
+  // biome-ignore lint/correctness/useExhaustiveDependencies: claimFirstAdmin is stable
+  useEffect(() => {
+    if (isAuthenticated && isAdmin === false && !claimFirstAdmin.isPending) {
+      claimFirstAdmin.mutate();
+    }
+  }, [isAuthenticated, isAdmin]);
 
   const handleLogin = async () => {
     try {
@@ -1062,7 +1240,7 @@ export default function AdminPage() {
     qc.clear();
   };
 
-  if (adminLoading) {
+  if (adminLoading || claimFirstAdmin.isPending) {
     return (
       <div
         className="container mx-auto px-4 py-20 flex justify-center"
@@ -1073,44 +1251,66 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAuthenticated) {
     return (
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">🔐</span>
+      <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-card border border-border rounded-2xl shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="bg-primary/5 border-b border-border px-8 py-6 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🔐</span>
+              </div>
+              <h1 className="font-display text-2xl font-bold text-foreground">
+                Admin Login
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Login to access the admin dashboard
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="px-8 py-6 space-y-4">
+              <Button
+                onClick={handleLogin}
+                disabled={loginStatus === "logging-in"}
+                size="lg"
+                className="w-full mt-2"
+                data-ocid="admin.primary_button"
+              >
+                {loginStatus === "logging-in" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Login with Internet Identity"
+                )}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground pt-1">
+                Powered by Internet Identity — secure decentralized login
+              </p>
+            </div>
           </div>
-          <h1 className="font-display text-3xl font-bold mb-3">Admin Panel</h1>
-          <p className="text-muted-foreground mb-8">
-            {isAuthenticated
-              ? "You don't have admin access. Please contact the platform owner."
-              : "Please log in with your admin account to access the dashboard."}
-          </p>
-          {isAuthenticated ? (
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              data-ocid="admin.secondary_button"
-            >
-              Logout
-            </Button>
-          ) : (
-            <Button
-              onClick={handleLogin}
-              disabled={loginStatus === "logging-in"}
-              size="lg"
-              data-ocid="admin.primary_button"
-            >
-              {loginStatus === "logging-in" ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                "Login to Admin"
-              )}
-            </Button>
-          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Setting up admin access...</p>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="mt-4"
+            data-ocid="admin.secondary_button"
+          >
+            Logout
+          </Button>
         </div>
       </div>
     );
@@ -1143,6 +1343,9 @@ export default function AdminPage() {
           <TabsTrigger value="taxi" data-ocid="admin.tab">
             Taxi Routes
           </TabsTrigger>
+          <TabsTrigger value="restaurants" data-ocid="admin.tab">
+            Restaurants
+          </TabsTrigger>
           <TabsTrigger value="bookings" data-ocid="admin.tab">
             Bookings
           </TabsTrigger>
@@ -1152,6 +1355,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="taxi">
           <TaxiRoutesTab />
+        </TabsContent>
+        <TabsContent value="restaurants">
+          <RestaurantsAdminTab />
         </TabsContent>
         <TabsContent value="bookings">
           <BookingsTab />

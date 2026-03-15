@@ -61,9 +61,9 @@
   .hero-overlay {
     background: linear-gradient(
       to bottom,
-      oklch(0.22 0.022 55 / 0.3) 0%,
-      oklch(0.22 0.022 55 / 0.6) 60%,
-      oklch(0.22 0.022 55 / 0.75) 100%
+      oklch(0.1 0.015 55 / 0.5) 0%,
+      oklch(0.1 0.015 55 / 0.7) 60%,
+      oklch(0.1 0.015 55 / 0.85) 100%
     );
   }
 

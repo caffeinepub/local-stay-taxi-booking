@@ -1,57 +1,21 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Car,
   Coffee,
   MapPin,
-  Search,
   Star,
   Utensils,
   Wifi,
 } from "lucide-react";
-import { useState } from "react";
-import type { TaxiRateType } from "../backend";
+import { ListingType } from "../backend";
 import {
   useGetActiveListings,
   useGetActiveTaxiRoutes,
 } from "../hooks/useQueries";
-
-const SAMPLE_STAYS = [
-  {
-    id: "sample-1",
-    name: "Mountain View Homestay",
-    type: "Homestay",
-    location: "Hilltop Village",
-    price: 45,
-    rating: 4.9,
-    image: "/assets/generated/listing-homestay-1.dim_800x600.jpg",
-    amenities: ["WiFi", "Breakfast", "Garden"],
-  },
-  {
-    id: "sample-2",
-    name: "The Terracotta Boutique",
-    type: "Hotel",
-    location: "Old Town Quarter",
-    price: 89,
-    rating: 4.8,
-    image: "/assets/generated/listing-hotel-room.dim_800x600.jpg",
-    amenities: ["WiFi", "Pool", "Restaurant"],
-  },
-  {
-    id: "sample-3",
-    name: "Pine Ridge Resort",
-    type: "Hotel",
-    location: "Forest Trail, Eastwood",
-    price: 120,
-    rating: 4.7,
-    image: "/assets/generated/listing-hotel-2.dim_800x600.jpg",
-    amenities: ["WiFi", "Spa", "Mountain View"],
-  },
-];
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   WiFi: <Wifi className="w-3 h-3" />,
@@ -59,22 +23,34 @@ const AMENITY_ICONS: Record<string, React.ReactNode> = {
   Restaurant: <Utensils className="w-3 h-3" />,
 };
 
+function listingTypeLabel(type: ListingType) {
+  switch (type) {
+    case ListingType.hotel:
+      return "Hotel";
+    case ListingType.homestay:
+      return "Homestay";
+    case "restaurant" as ListingType:
+      return "Restaurant";
+    case "dhaba" as ListingType:
+      return "Dhaba";
+    default:
+      return "Stay";
+  }
+}
+
 export default function HomePage() {
-  const navigate = useNavigate();
-  const [location, setLocation] = useState("");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const guests = "1";
-
   const { data: taxiRoutes, isLoading: taxiLoading } = useGetActiveTaxiRoutes();
+  const { data: listings, isLoading: listingsLoading } = useGetActiveListings();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate({
-      to: "/stays",
-      search: { location, checkIn, checkOut, guests },
-    } as any);
-  };
+  const featuredStays = listings
+    ? listings
+        .filter(
+          (l) =>
+            l.listingType === ListingType.hotel ||
+            l.listingType === ListingType.homestay,
+        )
+        .slice(0, 3)
+    : [];
 
   return (
     <div>
@@ -82,7 +58,7 @@ export default function HomePage() {
       <section
         className="relative min-h-[600px] flex items-center justify-center grain-overlay"
         style={{
-          backgroundImage: `url('/assets/generated/hero-homestay.dim_1600x800.jpg')`,
+          backgroundImage: `url('/assets/uploads/IMG_20260315_104438-1-1.jpg')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -93,60 +69,31 @@ export default function HomePage() {
             <Badge className="mb-4 bg-accent/90 text-accent-foreground border-0 font-medium">
               🏡 Local Stays & Transport
             </Badge>
-            <h1 className="font-display text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
+            <h1 className="font-display text-5xl md:text-7xl font-bold text-yellow-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] mb-4 leading-tight">
               Find Your Perfect
               <span className="block italic font-light">Home Away</span>
             </h1>
-            <p className="text-white/80 text-lg md:text-xl mb-10 max-w-xl mx-auto">
+            <p className="text-yellow-100/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] text-lg md:text-xl mb-10 max-w-xl mx-auto">
               Discover cozy homestays, boutique hotels, and reliable taxis — all
               in one place.
             </p>
-          </div>
-
-          {/* Search form */}
-          <form
-            onSubmit={handleSearch}
-            className="bg-card rounded-2xl p-4 md:p-5 shadow-warm max-w-3xl mx-auto"
-            data-ocid="search.panel"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="relative md:col-span-1">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Where to?"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="pl-9 bg-muted border-0 focus-visible:ring-primary"
-                  data-ocid="search.input"
-                />
-              </div>
-              <div>
-                <Input
-                  type="date"
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="bg-muted border-0 focus-visible:ring-primary"
-                  data-ocid="search.input"
-                />
-              </div>
-              <div>
-                <Input
-                  type="date"
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="bg-muted border-0 focus-visible:ring-primary"
-                  data-ocid="search.input"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                data-ocid="search.primary_button"
-              >
-                <Search className="w-4 h-4 mr-2" /> Search
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/stays" data-ocid="hero.primary_button">
+                <Button size="lg" className="font-semibold">
+                  Browse Stays
+                </Button>
+              </Link>
+              <Link to="/taxis" data-ocid="hero.secondary_button">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-yellow-200 border-yellow-300/60 hover:bg-yellow-300/10 font-semibold"
+                >
+                  Book a Taxi
+                </Button>
+              </Link>
             </div>
-          </form>
+          </div>
         </div>
       </section>
 
@@ -166,68 +113,97 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {SAMPLE_STAYS.map((stay, i) => (
-            <Link
-              key={stay.id}
-              to="/stays"
-              className="group block"
-              data-ocid={`featured.item.${i + 1}`}
-            >
-              <div className="bg-card rounded-2xl overflow-hidden shadow-card listing-card-hover">
-                <div className="relative h-52 overflow-hidden">
-                  <img
-                    src={stay.image}
-                    alt={stay.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <Badge className="bg-card text-foreground text-xs font-semibold">
-                      {stay.type}
-                    </Badge>
-                  </div>
-                  <div className="absolute top-3 right-3 flex items-center gap-1 bg-card/90 rounded-full px-2 py-0.5 text-xs font-semibold">
-                    <Star className="w-3 h-3 fill-accent text-accent" />
-                    {stay.rating}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-display text-lg font-semibold mb-1">
-                    {stay.name}
-                  </h3>
-                  <div className="flex items-center gap-1 text-muted-foreground text-sm mb-3">
-                    <MapPin className="w-3 h-3" />
-                    {stay.location}
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {stay.amenities.map((a) => (
-                      <span
-                        key={a}
-                        className="flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
-                      >
-                        {AMENITY_ICONS[a] ?? null} {a}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-xl text-foreground">
-                        ${stay.price}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {" "}
-                        /night
-                      </span>
+        {listingsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                className="h-80 rounded-2xl"
+                data-ocid="featured.loading_state"
+              />
+            ))}
+          </div>
+        ) : featuredStays.length === 0 ? (
+          <div
+            className="text-center py-12 text-muted-foreground"
+            data-ocid="featured.empty_state"
+          >
+            <p className="text-lg">Abhi koi listing nahi hai.</p>
+            <p className="text-sm mt-1">
+              Admin panel se hotels/homestays add karein.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {featuredStays.map((stay, i) => (
+              <Link
+                key={stay.id}
+                to="/stays/$id"
+                params={{ id: stay.id }}
+                className="group block"
+                data-ocid={`featured.item.${i + 1}`}
+              >
+                <div className="bg-card rounded-2xl overflow-hidden shadow-card listing-card-hover">
+                  <div className="relative h-52 overflow-hidden">
+                    {stay.photos && stay.photos.length > 0 ? (
+                      <img
+                        src={stay.photos[0].toString()}
+                        alt={stay.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm">
+                          No photo
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-card text-foreground text-xs font-semibold">
+                        {listingTypeLabel(stay.listingType)}
+                      </Badge>
                     </div>
-                    <Button size="sm" className="text-xs">
-                      Book Now
-                    </Button>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-display text-lg font-semibold mb-1">
+                      {stay.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm mb-3">
+                      <MapPin className="w-3 h-3" />
+                      {stay.location}
+                    </div>
+                    {stay.amenities && stay.amenities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {stay.amenities.slice(0, 3).map((a) => (
+                          <span
+                            key={a}
+                            className="flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
+                          >
+                            {AMENITY_ICONS[a] ?? null} {a}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-xl text-foreground">
+                          ₹{stay.pricePerNight.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          {" "}
+                          /night
+                        </span>
+                      </div>
+                      <Button size="sm" className="text-xs">
+                        Book Now
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Taxi Services */}
@@ -286,7 +262,7 @@ export default function HomePage() {
                       </p>
                     )}
                     <p className="text-primary font-bold text-lg mt-2">
-                      ${route.rate}
+                      ₹{route.rate}
                       {(route.rateType as string) === "perKm" ? "/km" : " flat"}
                     </p>
                   </div>
@@ -294,54 +270,11 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  from: "Airport",
-                  to: "City Center",
-                  price: "$25 flat",
-                  km: "18 km",
-                },
-                {
-                  from: "City Center",
-                  to: "Mountain Resort",
-                  price: "$1.50/km",
-                  km: "~45 km",
-                },
-                {
-                  from: "Bus Station",
-                  to: "Beach Town",
-                  price: "$30 flat",
-                  km: "22 km",
-                },
-              ].map((route, i) => (
-                <Link
-                  key={route.from}
-                  to="/taxis"
-                  className="block"
-                  data-ocid={`taxi.item.${i + 1}`}
-                >
-                  <div className="bg-card rounded-2xl p-5 shadow-card listing-card-hover">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Car className="w-5 h-5 text-primary" />
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Sample Route
-                      </Badge>
-                    </div>
-                    <p className="font-semibold text-sm">
-                      {route.from} → {route.to}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {route.km}
-                    </p>
-                    <p className="text-primary font-bold text-lg mt-2">
-                      {route.price}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+            <div
+              className="text-center py-8 text-muted-foreground"
+              data-ocid="taxi.empty_state"
+            >
+              <p>Admin panel se taxi routes add karein.</p>
             </div>
           )}
         </div>
@@ -376,7 +309,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-white border-white/40 hover:bg-white/10 font-semibold"
+                className="text-yellow-200 border-yellow-300/60 hover:bg-yellow-300/10 font-semibold"
               >
                 Book a Taxi
               </Button>

@@ -65,7 +65,9 @@ export enum BookingType {
 }
 export enum ListingType {
     hotel = "hotel",
-    homestay = "homestay"
+    homestay = "homestay",
+    restaurant = "restaurant",
+    dhaba = "dhaba"
 }
 export enum TaxiRateType {
     flat = "flat",
@@ -77,6 +79,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    claimFirstAdmin(): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createListing(listing: Listing): Promise<Listing>;
     createTaxiRoute(route: TaxiRoute): Promise<TaxiRoute>;

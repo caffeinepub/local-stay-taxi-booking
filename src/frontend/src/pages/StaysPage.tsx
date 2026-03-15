@@ -96,7 +96,9 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <span className="font-bold text-xl">${listing.pricePerNight}</span>
+            <span className="font-bold text-xl">
+              ₹{listing.pricePerNight.toLocaleString("en-IN")}
+            </span>
             <span className="text-muted-foreground text-sm"> /night</span>
           </div>
           <Link
@@ -116,7 +118,7 @@ export default function StaysPage() {
   const { data: listings, isLoading } = useGetActiveListings();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [locationSearch, setLocationSearch] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([0, 50000]);
 
   const filtered = (listings ?? []).filter((l) => {
     if (
@@ -176,12 +178,13 @@ export default function StaysPage() {
             htmlFor="price-slider"
             className="text-xs text-muted-foreground mb-2 block"
           >
-            Price: ${priceRange[0]} – ${priceRange[1]}/night
+            Price: ₹{priceRange[0].toLocaleString("en-IN")} – ₹
+            {priceRange[1].toLocaleString("en-IN")}/night
           </label>
           <Slider
             min={0}
-            max={500}
-            step={10}
+            max={50000}
+            step={500}
             value={priceRange}
             onValueChange={setPriceRange}
             className="w-full"
@@ -213,7 +216,7 @@ export default function StaysPage() {
             onClick={() => {
               setTypeFilter("all");
               setLocationSearch("");
-              setPriceRange([0, 500]);
+              setPriceRange([0, 50000]);
             }}
           >
             Clear Filters

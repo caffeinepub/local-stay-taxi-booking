@@ -170,6 +170,7 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    claimFirstAdmin(): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createListing(listing: Listing): Promise<Listing>;
     createTaxiRoute(route: TaxiRoute): Promise<TaxiRoute>;
@@ -487,6 +488,18 @@ export class Backend implements backendInterface {
             const result = await this.actor.getUserProfile(arg0);
             return from_candid_opt_n41(this._uploadFile, this._downloadFile, result);
         }
+    }
+    async claimFirstAdmin(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.claimFirstAdmin();
+                return result;
+            } catch(e) {
+                return this.processError(e);
+            }
+        }
+        const result = await this.actor.claimFirstAdmin();
+        return result;
     }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {

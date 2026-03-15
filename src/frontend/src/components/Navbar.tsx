@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -31,23 +31,19 @@ export default function Navbar() {
     { to: "/", label: "Home" },
     { to: "/stays", label: "Stays" },
     { to: "/taxis", label: "Taxis" },
+    { to: "/restaurants", label: "Restaurants" },
     { to: "/admin", label: "Admin" },
   ];
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-xs">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center gap-2 group"
-          data-ocid="nav.link"
-        >
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <MapPin className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-display text-xl font-700 text-foreground">
-            Local<span className="text-primary">Stay</span>
-          </span>
+        <Link to="/" className="flex items-center" data-ocid="nav.link">
+          <img
+            src="/assets/generated/stay-easy-logo-transparent.dim_480x140.png"
+            alt="Stay Easy"
+            className="h-10 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop nav */}

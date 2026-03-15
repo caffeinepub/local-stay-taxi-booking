@@ -222,7 +222,7 @@ export default function ListingDetailPage() {
           <div className="bg-card rounded-2xl shadow-card p-6 sticky top-20">
             <div className="mb-5">
               <span className="font-bold text-3xl">
-                ${listing.pricePerNight}
+                ₹{listing.pricePerNight.toLocaleString("en-IN")}
               </span>
               <span className="text-muted-foreground"> /night</span>
             </div>
@@ -268,7 +268,7 @@ export default function ListingDetailPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, phone: e.target.value }))
                   }
-                  placeholder="+1 234 567 8900"
+                  placeholder="+91 98765 43210"
                   required
                   data-ocid="booking.input"
                 />
@@ -319,13 +319,14 @@ export default function ListingDetailPage() {
                 <div className="bg-muted rounded-xl p-3 text-sm space-y-1">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      ${listing.pricePerNight} × {nights} nights
+                      ₹{listing.pricePerNight.toLocaleString("en-IN")} ×{" "}
+                      {nights} nights
                     </span>
-                    <span>${total}</span>
+                    <span>₹{total.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-1 border-t border-border">
                     <span>Total</span>
-                    <span>${total}</span>
+                    <span>₹{total.toLocaleString("en-IN")}</span>
                   </div>
                 </div>
               )}

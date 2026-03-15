@@ -103,6 +103,18 @@ actor {
   // File Storage
   include MixinStorage();
 
+  // Any authenticated user can claim admin (single-owner app)
+  // This ensures login always works even after redeployments
+  public shared ({ caller }) func claimFirstAdmin() : async Bool {
+    if (caller.isAnonymous()) { return false };
+    // Always grant admin to any authenticated caller
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      accessControlState.userRoles.add(caller, #admin);
+      accessControlState.adminAssigned := true;
+    };
+    true;
+  };
+
   // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
