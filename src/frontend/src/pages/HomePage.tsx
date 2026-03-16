@@ -2,15 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Car,
-  Coffee,
-  MapPin,
-  Star,
-  Utensils,
-  Wifi,
-} from "lucide-react";
+import { ArrowRight, Car, Coffee, MapPin, Utensils, Wifi } from "lucide-react";
 import { ListingType } from "../backend";
 import {
   useGetActiveListings,
@@ -147,7 +139,7 @@ export default function HomePage() {
                   <div className="relative h-52 overflow-hidden">
                     {stay.photos && stay.photos.length > 0 ? (
                       <img
-                        src={stay.photos[0].toString()}
+                        src={stay.photos[0].getDirectURL()}
                         alt={stay.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

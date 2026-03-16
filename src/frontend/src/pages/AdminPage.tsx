@@ -86,10 +86,12 @@ function ListingFormDialog({
   open,
   onClose,
   existing,
+  defaultListingType,
 }: {
   open: boolean;
   onClose: () => void;
   existing?: Listing;
+  defaultListingType?: string;
 }) {
   const createListing = useCreateListing();
   const updateListing = useUpdateListing();
@@ -107,7 +109,10 @@ function ListingFormDialog({
           isActive: existing.isActive,
           photos: existing.photos,
         }
-      : defaultListingForm(),
+      : {
+          ...defaultListingForm(),
+          ...(defaultListingType ? { listingType: defaultListingType } : {}),
+        },
   );
   const [uploadProgress, setUploadProgress] = useState<number[]>([]);
 
@@ -1035,7 +1040,11 @@ function RestaurantsAdminTab() {
       )}
 
       {showAdd && (
-        <ListingFormDialog open={showAdd} onClose={() => setShowAdd(false)} />
+        <ListingFormDialog
+          open={showAdd}
+          onClose={() => setShowAdd(false)}
+          defaultListingType="restaurant"
+        />
       )}
       {editListing && (
         <ListingFormDialog
@@ -1216,26 +1225,40 @@ export default function AdminPage() {
   const qc = useQueryClient();
   const isAuthenticated = !!identity;
 
+  // Track claim attempts to avoid infinite loops
+  const claimAttemptsRef = useRef(0);
+
   // Auto-claim admin role when authenticated but not yet admin
   // biome-ignore lint/correctness/useExhaustiveDependencies: claimFirstAdmin is stable
   useEffect(() => {
-    if (isAuthenticated && isAdmin === false && !claimFirstAdmin.isPending) {
+    if (
+      isAuthenticated &&
+      isAdmin === false &&
+      !claimFirstAdmin.isPending &&
+      !claimFirstAdmin.isError &&
+      claimAttemptsRef.current < 3
+    ) {
+      claimAttemptsRef.current += 1;
       claimFirstAdmin.mutate();
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [
+    isAuthenticated,
+    isAdmin,
+    claimFirstAdmin.isPending,
+    claimFirstAdmin.isError,
+  ]);
 
-  const handleLogin = async () => {
-    try {
-      await login();
-    } catch (e: any) {
-      if (e?.message === "User is already authenticated") {
-        await clear();
-        setTimeout(() => login(), 300);
-      }
+  const handleLogin = () => {
+    if (loginStatus === "loginError") {
+      clear();
+      setTimeout(() => login(), 300);
+      return;
     }
+    login();
   };
 
   const handleLogout = async () => {
+    claimAttemptsRef.current = 0;
     await clear();
     qc.clear();
   };
@@ -1298,6 +1321,39 @@ export default function AdminPage() {
   }
 
   if (!isAdmin) {
+    if (claimFirstAdmin.isError) {
+      return (
+        <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
+          <div className="w-full max-w-md text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="font-semibold text-lg mb-2">Admin Access Failed</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Could not set up admin access. This account may not have admin
+              privileges, or there was a connection error. Please try again.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => {
+                  claimAttemptsRef.current = 0;
+                  claimFirstAdmin.mutate();
+                }}
+                data-ocid="admin.primary_button"
+              >
+                Try Again
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                data-ocid="admin.secondary_button"
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-md text-center">

@@ -155,12 +155,6 @@ export default function RestaurantsPage() {
                       <MapPin className="w-3.5 h-3.5" />
                       <span>{listing.location}</span>
                     </div>
-                    {listing.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {listing.description}
-                      </p>
-                    )}
-
                     {/* Menu Highlights (amenities) */}
                     {listing.amenities.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">

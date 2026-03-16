@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Loader2, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Loader2, MapPin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookingStatus, BookingType } from "../backend";
@@ -39,6 +39,12 @@ export default function ListingDetailPage() {
   })();
 
   const total = nights * (listing?.pricePerNight ?? 0);
+  const advance = nights > 0 ? Math.max(500, Math.round(total * 0.3)) : 0;
+
+  const handleCopyUPI = () => {
+    navigator.clipboard.writeText("ishwarbharti615@okaxis");
+    toast.success("UPI ID copied!");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +74,9 @@ export default function ListingDetailPage() {
         checkIn: form.checkIn,
         checkOut: form.checkOut,
       });
-      toast.success("Booking submitted! We'll contact you shortly.");
+      toast.success(
+        "Booking request submitted! Please complete advance payment to confirm.",
+      );
       setForm({
         guestName: "",
         email: "",
@@ -331,6 +339,80 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
+              {/* Advance Payment Box */}
+              {nights > 0 && (
+                <div
+                  className="rounded-2xl border-2 border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-600 p-4 space-y-3"
+                  data-ocid="payment.panel"
+                >
+                  {/* Heading */}
+                  <div className="text-center">
+                    <p className="font-bold text-emerald-800 dark:text-emerald-300 text-base leading-snug">
+                      Advance Payment Required
+                    </p>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      बुकिंग कन्फर्म करने के लिए Advance Pay करें
+                    </p>
+                  </div>
+
+                  {/* Amount */}
+                  <div className="text-center">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-0.5">
+                      Advance Amount (30%)
+                    </p>
+                    <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-300 tracking-tight">
+                      ₹{advance.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex justify-center">
+                    <img
+                      src="/assets/uploads/IMG-20260316-WA0000-1.jpg"
+                      alt="UPI Payment QR Code"
+                      className="w-48 h-48 object-contain rounded-xl border border-emerald-200 dark:border-emerald-700 bg-white"
+                    />
+                  </div>
+
+                  {/* UPI ID */}
+                  <div className="flex items-center justify-between bg-white dark:bg-emerald-900/40 rounded-xl px-3 py-2 border border-emerald-200 dark:border-emerald-700">
+                    <div>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        UPI ID
+                      </p>
+                      <p className="font-mono font-semibold text-sm text-emerald-900 dark:text-emerald-100 select-all">
+                        ishwarbharti615@okaxis
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyUPI}
+                      className="ml-2 p-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-800 transition-colors"
+                      title="Copy UPI ID"
+                      data-ocid="payment.button"
+                    >
+                      <Copy className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </button>
+                  </div>
+
+                  {/* Instructions */}
+                  <p className="text-xs text-center text-emerald-700 dark:text-emerald-400">
+                    Scan QR code with any UPI app (GPay, PhonePe, Paytm) to pay
+                    advance
+                  </p>
+
+                  {/* Note */}
+                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2">
+                    <span className="text-amber-500 text-base mt-0.5">⚠️</span>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                      Booking will be confirmed only after advance payment.
+                      Please share payment screenshot on WhatsApp/call after
+                      paying.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full"
@@ -343,9 +425,16 @@ export default function ListingDetailPage() {
                     Submitting...
                   </>
                 ) : (
-                  "Request Booking"
+                  "Submit Booking Request"
                 )}
               </Button>
+
+              {nights > 0 && (
+                <p className="text-xs text-center text-muted-foreground">
+                  ⚠️ Advance payment via QR/UPI is required to confirm your
+                  booking.
+                </p>
+              )}
             </form>
           </div>
         </div>
