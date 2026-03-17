@@ -33,6 +33,7 @@ export interface Listing {
     listingType: ListingType;
     location: string;
     photos: Array<ExternalBlob>;
+    contactPhone?: string;
 }
 export interface Booking {
     id: string;
@@ -89,6 +90,7 @@ export interface backendInterface {
     getActiveListings(): Promise<Array<Listing>>;
     getActiveTaxiRoutes(): Promise<Array<TaxiRoute>>;
     getAllBookings(): Promise<Array<Booking>>;
+    getAllListingPhones(): Promise<Array<[string, string]>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getListing(id: string): Promise<Listing>;
@@ -96,8 +98,10 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    setListingPhone(id: string, phone: string): Promise<void>;
     submitBooking(booking: Booking): Promise<Booking>;
     updateBookingStatus(id: string, status: BookingStatus): Promise<Booking>;
     updateListing(id: string, listing: Listing): Promise<Listing>;
     updateTaxiRoute(id: string, route: TaxiRoute): Promise<TaxiRoute>;
+    getBookingsByPhone(phone: string): Promise<Array<Booking>>;
 }

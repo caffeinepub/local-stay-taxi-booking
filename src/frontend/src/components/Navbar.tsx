@@ -32,6 +32,7 @@ export default function Navbar() {
     { to: "/stays", label: "Stays" },
     { to: "/taxis", label: "Taxis" },
     { to: "/restaurants", label: "Restaurants" },
+    { to: "/booking-status", label: "Booking Status" },
     { to: "/admin", label: "Admin" },
   ];
 

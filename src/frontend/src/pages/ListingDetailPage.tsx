@@ -5,18 +5,34 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Copy, Loader2, MapPin } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookingStatus, BookingType } from "../backend";
-import { useGetListing, useSubmitBooking } from "../hooks/useQueries";
+import {
+  useGetAllListingPhones,
+  useGetListing,
+  useSubmitBooking,
+} from "../hooks/useQueries";
 
 export default function ListingDetailPage() {
   const { id } = useParams({ from: "/stays/$id" });
   const { data: listing, isLoading, isError } = useGetListing(id);
+  const { data: listingPhones } = useGetAllListingPhones();
+  const phoneMap = Object.fromEntries(listingPhones ?? []);
   const submitBooking = useSubmitBooking();
 
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [bookingSubmitted, setBookingSubmitted] = useState(false);
   const [form, setForm] = useState({
     guestName: "",
     email: "",
@@ -77,6 +93,7 @@ export default function ListingDetailPage() {
       toast.success(
         "Booking request submitted! Please complete advance payment to confirm.",
       );
+      setBookingSubmitted(true);
       setForm({
         guestName: "",
         email: "",
@@ -222,6 +239,26 @@ export default function ListingDetailPage() {
                 </Badge>
               ))}
             </div>
+            {phoneMap[listing.id] && (
+              <div className="flex gap-3 mt-6">
+                <a
+                  href={`tel:${phoneMap[listing.id]}`}
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors"
+                  data-ocid="listing.button"
+                >
+                  <Phone className="w-4 h-4" /> Call Now
+                </a>
+                <a
+                  href={`https://wa.me/${(phoneMap[listing.id] ?? "").replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors"
+                  data-ocid="listing.button"
+                >
+                  <MessageCircle className="w-4 h-4" /> WhatsApp
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
@@ -436,6 +473,30 @@ export default function ListingDetailPage() {
                 </p>
               )}
             </form>
+
+            {/* Booking submitted success box */}
+            {bookingSubmitted && (
+              <div
+                className="mt-4 rounded-2xl border-2 border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 p-4 text-center"
+                data-ocid="booking.success_state"
+              >
+                <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="font-bold text-emerald-800 dark:text-emerald-300 text-base">
+                  Booking request submitted!
+                </p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 mb-3">
+                  Advance payment QR se karein. Payment ke baad status check
+                  karne ke liye:
+                </p>
+                <a
+                  href="/booking-status"
+                  className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                  data-ocid="booking.link"
+                >
+                  Check Payment Status →
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>

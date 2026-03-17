@@ -10,6 +10,7 @@ import {
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import AdminPage from "./pages/AdminPage";
+import BookingStatusPage from "./pages/BookingStatusPage";
 import HomePage from "./pages/HomePage";
 import ListingDetailPage from "./pages/ListingDetailPage";
 import RestaurantsPage from "./pages/RestaurantsPage";
@@ -64,6 +65,11 @@ const adminRoute = createRoute({
   path: "/admin",
   component: AdminPage,
 });
+const bookingStatusRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/booking-status",
+  component: BookingStatusPage,
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -72,6 +78,7 @@ const routeTree = rootRoute.addChildren([
   taxisRoute,
   restaurantsRoute,
   adminRoute,
+  bookingStatusRoute,
 ]);
 
 const router = createRouter({ routeTree });

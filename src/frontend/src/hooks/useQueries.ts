@@ -50,6 +50,19 @@ export function useGetAllBookings() {
   });
 }
 
+export function useGetBookingsByPhone(phone: string) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Booking[]>({
+    queryKey: ["bookingsByPhone", phone],
+    queryFn: async () => {
+      if (!actor || !phone) return [];
+      // biome-ignore lint/suspicious/noExplicitAny: getBookingsByPhone may not be in generated types
+      return (actor as any).getBookingsByPhone(phone);
+    },
+    enabled: !!actor && !isFetching && phone.length >= 10,
+  });
+}
+
 export function useIsCallerAdmin() {
   const { actor, isFetching } = useActor();
   return useQuery<boolean>({
@@ -182,5 +195,29 @@ export function useDeleteBooking() {
       return actor.deleteBooking(id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["allBookings"] }),
+  });
+}
+
+export function useGetAllListingPhones() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Array<[string, string]>>({
+    queryKey: ["listingPhones"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as any).getAllListingPhones();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetListingPhone() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, phone }: { id: string; phone: string }) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).setListingPhone(id, phone);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["listingPhones"] }),
   });
 }

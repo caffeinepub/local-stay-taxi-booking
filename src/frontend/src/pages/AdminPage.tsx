@@ -53,6 +53,7 @@ import {
   useGetActiveTaxiRoutes,
   useGetAllBookings,
   useIsCallerAdmin,
+  useSetListingPhone,
   useUpdateBookingStatus,
   useUpdateListing,
   useUpdateTaxiRoute,
@@ -69,6 +70,7 @@ interface ListingFormData {
   pricePerNight: string;
   isActive: boolean;
   photos: ExternalBlob[];
+  contactPhone: string;
 }
 
 const defaultListingForm = (): ListingFormData => ({
@@ -80,6 +82,7 @@ const defaultListingForm = (): ListingFormData => ({
   pricePerNight: "",
   isActive: true,
   photos: [],
+  contactPhone: "",
 });
 
 function ListingFormDialog({
@@ -95,6 +98,7 @@ function ListingFormDialog({
 }) {
   const createListing = useCreateListing();
   const updateListing = useUpdateListing();
+  const setListingPhone = useSetListingPhone();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ListingFormData>(() =>
@@ -108,6 +112,7 @@ function ListingFormDialog({
           pricePerNight: String(existing.pricePerNight),
           isActive: existing.isActive,
           photos: existing.photos,
+          contactPhone: "",
         }
       : {
           ...defaultListingForm(),
@@ -149,7 +154,7 @@ function ListingFormDialog({
       toast.error("Please fill in all required fields.");
       return;
     }
-    const payload: Listing = {
+    const payload = {
       id: existing?.id ?? crypto.randomUUID(),
       name: form.name,
       listingType: form.listingType as ListingType,
@@ -161,13 +166,21 @@ function ListingFormDialog({
       photos: form.photos,
     };
     try {
+      let savedId = existing?.id ?? "";
       if (existing) {
-        await updateListing.mutateAsync({ id: existing.id, listing: payload });
-        toast.success("Listing updated!");
+        await updateListing.mutateAsync({
+          id: existing.id,
+          listing: payload as any,
+        });
       } else {
-        await createListing.mutateAsync(payload);
-        toast.success("Listing created!");
+        const created = await createListing.mutateAsync(payload as any);
+        savedId = created.id;
       }
+      await setListingPhone.mutateAsync({
+        id: savedId,
+        phone: form.contactPhone ?? "",
+      });
+      toast.success(existing ? "Listing updated!" : "Listing created!");
       onClose();
     } catch {
       toast.error("Failed to save listing.");
@@ -243,6 +256,18 @@ function ListingFormDialog({
                 setForm((f) => ({ ...f, location: e.target.value }))
               }
               placeholder="Old Town, City"
+              data-ocid="listing.input"
+            />
+          </div>
+          <div>
+            <Label>Contact Phone (for Call/WhatsApp button)</Label>
+            <Input
+              type="tel"
+              value={form.contactPhone}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, contactPhone: e.target.value }))
+              }
+              placeholder="+91 98765 43210"
               data-ocid="listing.input"
             />
           </div>
@@ -921,9 +946,15 @@ function TaxiRoutesTab() {
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-accent/30 text-accent-foreground border-accent/30",
-  confirmed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+  pending: "bg-amber-100 text-amber-800 border-amber-300",
+  confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  cancelled: "bg-red-100 text-red-700 border-red-300",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Payment Pending",
+  confirmed: "✓ Paid",
+  cancelled: "Cancelled",
 };
 
 function RestaurantsAdminTab() {
@@ -1137,6 +1168,7 @@ function BookingsTab() {
                 <TableHead>Contact</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Total</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -1169,6 +1201,25 @@ function BookingsTab() {
                   </TableCell>
                   <TableCell className="font-medium">
                     ₹{b.totalPrice.toLocaleString("en-IN")}
+                  </TableCell>
+                  <TableCell>
+                    {(b.status as string) === "pending" ? (
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => handleStatusChange(b.id, "confirmed")}
+                        data-ocid={`bookings.primary_button.${i + 1}`}
+                      >
+                        Mark as Paid
+                      </Button>
+                    ) : (
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-full border ${STATUS_COLORS[b.status as string] ?? ""}`}
+                      >
+                        {STATUS_LABELS[b.status as string] ??
+                          (b.status as string)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select

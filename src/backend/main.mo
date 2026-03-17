@@ -95,6 +95,8 @@ actor {
   let taxiRoutes = Map.empty<Text, TaxiRoute>();
   let bookings = Map.empty<Text, Booking>();
   let userProfiles = Map.empty<Principal, UserProfile>();
+  // Separate map for listing contact phones (avoids migration issues)
+  let listingPhones = Map.empty<Text, Text>();
 
   // Authorization setup
   let accessControlState = AccessControl.initState();
@@ -104,10 +106,8 @@ actor {
   include MixinStorage();
 
   // Any authenticated user can claim admin (single-owner app)
-  // This ensures login always works even after redeployments
   public shared ({ caller }) func claimFirstAdmin() : async Bool {
     if (caller.isAnonymous()) { return false };
-    // Always grant admin to any authenticated caller
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       accessControlState.userRoles.add(caller, #admin);
       accessControlState.adminAssigned := true;
@@ -160,6 +160,27 @@ actor {
     };
   };
 
+  // Phone number management for listings
+  public query func getAllListingPhones() : async [(Text, Text)] {
+    listingPhones.entries().toArray();
+  };
+
+  public shared ({ caller }) func setListingPhone(id : Text, phone : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Only admins can set listing phones");
+    };
+    if (phone == "") {
+      listingPhones.remove(id);
+    } else {
+      listingPhones.add(id, phone);
+    };
+  };
+
+  // Public: get bookings by phone number (for customer status check)
+  public query func getBookingsByPhone(phone : Text) : async [Booking] {
+    bookings.values().toArray().filter(func(b) { b.phone == phone });
+  };
+
   // Booking
   public shared ({ caller }) func submitBooking(booking : Booking) : async Booking {
     let bookingWithId : Booking = {
@@ -201,6 +222,7 @@ actor {
       Runtime.trap("Only admins can delete listings");
     };
     listings.remove(id);
+    listingPhones.remove(id);
   };
 
   public shared ({ caller }) func createTaxiRoute(route : TaxiRoute) : async TaxiRoute {

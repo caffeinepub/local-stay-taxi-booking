@@ -9,6 +9,8 @@ import {
   Coffee,
   Dumbbell,
   MapPin,
+  MessageCircle,
+  Phone,
   Star,
   Tv,
   Utensils,
@@ -17,7 +19,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Listing, ListingType } from "../backend";
-import { useGetActiveListings } from "../hooks/useQueries";
+import {
+  useGetActiveListings,
+  useGetAllListingPhones,
+} from "../hooks/useQueries";
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   WiFi: <Wifi className="w-3 h-3" />,
@@ -46,7 +51,11 @@ function ListingCardSkeleton() {
   );
 }
 
-function ListingCard({ listing, index }: { listing: Listing; index: number }) {
+function ListingCard({
+  listing,
+  index,
+  contactPhone,
+}: { listing: Listing; index: number; contactPhone?: string }) {
   const photo = listing.photos[0];
   const imgSrc = photo
     ? photo.getDirectURL()
@@ -109,6 +118,26 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
             <Button size="sm">View Details</Button>
           </Link>
         </div>
+        {contactPhone && (
+          <div className="flex gap-2 mt-2">
+            <a
+              href={`tel:${contactPhone}`}
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
+              data-ocid="stays.button"
+            >
+              <Phone className="w-3.5 h-3.5" /> Call
+            </a>
+            <a
+              href={`https://wa.me/${(contactPhone ?? "").replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
+              data-ocid="stays.button"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -116,6 +145,8 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
 
 export default function StaysPage() {
   const { data: listings, isLoading } = useGetActiveListings();
+  const { data: listingPhones } = useGetAllListingPhones();
+  const phoneMap = Object.fromEntries(listingPhones ?? []);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [locationSearch, setLocationSearch] = useState("");
   const [priceRange, setPriceRange] = useState([0, 50000]);
@@ -225,7 +256,12 @@ export default function StaysPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((listing, i) => (
-            <ListingCard key={listing.id} listing={listing} index={i} />
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              index={i}
+              contactPhone={phoneMap[listing.id]}
+            />
           ))}
         </div>
       )}

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Car, Loader2, MapPin } from "lucide-react";
@@ -18,23 +19,39 @@ import { BookingStatus, BookingType } from "../backend";
 import type { TaxiRoute } from "../backend";
 import { useGetActiveTaxiRoutes, useSubmitBooking } from "../hooks/useQueries";
 
+type TripType = "oneside" | "roundtrip" | "multicity";
+
+const TRIP_OPTIONS: { value: TripType; label: string; id: string }[] = [
+  { value: "oneside", label: "One Side", id: "trip-oneside" },
+  { value: "roundtrip", label: "Round Trip", id: "trip-roundtrip" },
+  { value: "multicity", label: "Multi City", id: "trip-multicity" },
+];
+
 function TaxiBookingForm({
   route,
   onClose,
 }: { route: TaxiRoute; onClose: () => void }) {
   const submitBooking = useSubmitBooking();
+  const [tripType, setTripType] = useState<TripType>("oneside");
   const [form, setForm] = useState({
     guestName: "",
     email: "",
     phone: "",
     pickupDate: "",
+    returnDate: "",
+    cities: "",
     passengers: "1",
     notes: "",
   });
 
   const calcTotal = () => {
-    if ((route.rateType as string) === "flat") return route.rate;
-    return route.estimatedKm ? route.rate * route.estimatedKm : route.rate;
+    const base =
+      (route.rateType as string) === "flat"
+        ? route.rate
+        : route.estimatedKm
+          ? route.rate * route.estimatedKm
+          : route.rate;
+    return tripType === "roundtrip" ? base * 2 : base;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +60,22 @@ function TaxiBookingForm({
       toast.error("Please fill in all required fields.");
       return;
     }
+    if (tripType === "roundtrip" && !form.returnDate) {
+      toast.error("Please select a return date.");
+      return;
+    }
+    if (tripType === "multicity" && !form.cities.trim()) {
+      toast.error("Please enter the cities for your trip.");
+      return;
+    }
     try {
+      const extraNotes = [
+        form.notes,
+        tripType === "roundtrip" ? `Return Date: ${form.returnDate}` : "",
+        tripType === "multicity" ? `Cities: ${form.cities}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | ");
       await submitBooking.mutateAsync({
         id: crypto.randomUUID(),
         status: BookingStatus.pending,
@@ -51,7 +83,7 @@ function TaxiBookingForm({
         guestName: form.guestName,
         email: form.email,
         phone: form.phone,
-        notes: form.notes,
+        notes: extraNotes,
         bookingType: BookingType.taxi,
         totalPrice: calcTotal(),
         taxiRouteId: route.id,
@@ -71,17 +103,51 @@ function TaxiBookingForm({
       className="space-y-4"
       data-ocid="taxi-booking.panel"
     >
+      {/* Trip Type Radio Buttons */}
+      <div>
+        <p className="text-sm font-semibold mb-2">Trip Type</p>
+        <RadioGroup
+          value={tripType}
+          onValueChange={(v) => setTripType(v as TripType)}
+          className="flex flex-wrap gap-2"
+        >
+          {TRIP_OPTIONS.map((opt) => (
+            <div key={opt.value} data-ocid="taxi-booking.radio">
+              <RadioGroupItem
+                value={opt.value}
+                id={opt.id}
+                className="sr-only"
+              />
+              <Label
+                htmlFor={opt.id}
+                className={`flex items-center cursor-pointer px-4 py-2 rounded-xl border-2 transition-colors text-sm font-medium select-none ${
+                  tripType === opt.value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                {opt.label}
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      {/* Route summary */}
       <div className="bg-muted rounded-xl p-3 text-sm">
         <p className="font-semibold">
           {route.origin} → {route.destination}
+          {tripType === "roundtrip" && ` → ${route.origin}`}
         </p>
         <p className="text-muted-foreground mt-0.5">
           {(route.rateType as string) === "perKm"
-            ? `$${route.rate}/km`
-            : `$${route.rate} flat rate`}
+            ? `₹${route.rate}/km`
+            : `₹${route.rate} flat rate`}
           {route.estimatedKm ? ` · ~${route.estimatedKm} km` : ""}
+          {tripType === "roundtrip" ? " (×2 for return)" : ""}
         </p>
       </div>
+
       <div>
         <Label>Full Name *</Label>
         <Input
@@ -111,11 +177,12 @@ function TaxiBookingForm({
           type="tel"
           value={form.phone}
           onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-          placeholder="+1 234 567 8900"
+          placeholder="+91 98765 43210"
           required
           data-ocid="taxi-booking.input"
         />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Pickup Date *</Label>
@@ -143,6 +210,41 @@ function TaxiBookingForm({
           />
         </div>
       </div>
+
+      {/* Return Date for Round Trip */}
+      {tripType === "roundtrip" && (
+        <div>
+          <Label>Return Date *</Label>
+          <Input
+            type="date"
+            value={form.returnDate}
+            min={form.pickupDate || undefined}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, returnDate: e.target.value }))
+            }
+            required
+            data-ocid="taxi-booking.input"
+          />
+        </div>
+      )}
+
+      {/* Cities for Multi City */}
+      {tripType === "multicity" && (
+        <div>
+          <Label>Cities to Visit *</Label>
+          <Textarea
+            value={form.cities}
+            onChange={(e) => setForm((f) => ({ ...f, cities: e.target.value }))}
+            placeholder={"e.g.\nDelhi\nAgra\nJaipur\nUdaipur"}
+            rows={4}
+            data-ocid="taxi-booking.textarea"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Enter each city on a new line
+          </p>
+        </div>
+      )}
+
       <div>
         <Label>Notes</Label>
         <Textarea
@@ -153,10 +255,15 @@ function TaxiBookingForm({
           data-ocid="taxi-booking.textarea"
         />
       </div>
+
       <div className="bg-muted rounded-xl p-3 flex justify-between text-sm font-semibold">
         <span>Estimated Total</span>
-        <span>${calcTotal()}</span>
+        <span>
+          ₹{calcTotal()}
+          {tripType === "roundtrip" ? " (return incl.)" : ""}
+        </span>
       </div>
+
       <div className="flex gap-3">
         <Button
           type="button"
@@ -209,7 +316,7 @@ function TaxiRouteCard({ route, index }: { route: TaxiRoute; index: number }) {
         </div>
         <div className="text-right">
           <p className="text-primary font-bold text-2xl">
-            ${route.rate}
+            ₹{route.rate}
             {isPerKm ? "/km" : ""}
           </p>
           {isPerKm && route.estimatedKm && (
@@ -228,7 +335,7 @@ function TaxiRouteCard({ route, index }: { route: TaxiRoute; index: number }) {
       </div>
       {isPerKm && route.estimatedKm && (
         <div className="bg-muted rounded-lg p-2 text-xs text-muted-foreground mb-4">
-          Estimated total: ${(route.rate * route.estimatedKm).toFixed(2)}
+          Estimated total: ₹{(route.rate * route.estimatedKm).toFixed(2)}
         </div>
       )}
       <Dialog open={open} onOpenChange={setOpen}>

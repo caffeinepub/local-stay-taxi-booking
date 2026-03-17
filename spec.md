@@ -1,39 +1,31 @@
-# Local Stay & Taxi Booking
+# Stay Easy
 
 ## Current State
-New project. No existing code.
+Full-stack booking platform with Hotels, Taxi, Restaurant features. Listing type has: id, name, listingType, description, amenities, pricePerNight, location, photos, isActive. No contact phone field exists.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Homepage with search bar (location, check-in/check-out, guests) and featured listings grid
-- Hotel/Homestay listings page with photos, description, amenities list, per-night rate, and booking form
-- Taxi/Cab booking section with route selector (origin/destination), per-km or flat-rate pricing, and booking form
-- Individual listing detail page with photo gallery, amenities, and inquiry/booking form
-- Admin Panel (authenticated) with:
-  - Listings manager: add/edit/remove hotel & homestay listings
-  - Photo upload/management per listing (blob storage)
-  - Room rate management
-  - Taxi rate management (routes, per-km/flat)
-  - Bookings/inquiries viewer with status management
-- Sample seed data: 3 hotels, 2 homestays, 3 taxi routes with placeholder rates
+- `contactPhone` optional field to Listing type (backend + frontend types)
+- Phone input field in Admin listing form
+- Call button (tel: link) and WhatsApp button (wa.me link) on hotel/homestay listing cards (StaysPage, HomePage featured stays)
+- Call/WhatsApp buttons on ListingDetailPage
 
 ### Modify
-- None
+- `src/backend/main.mo` Listing type: add `contactPhone : ?Text`
+- `src/frontend/src/backend.d.ts` Listing interface: add `contactPhone?: string`
+- AdminPage ListingFormDialog: add contactPhone input
+- StaysPage ListingCard: show Call + WhatsApp buttons if contactPhone set
+- ListingDetailPage: show Call + WhatsApp buttons if contactPhone set
+- HomePage featured stay cards: show Call button if contactPhone set
 
 ### Remove
-- None
+- Nothing removed
 
 ## Implementation Plan
-1. Select `authorization` and `blob-storage` Caffeine components
-2. Generate Motoko backend with:
-   - Listing CRUD (id, name, type: hotel|homestay, description, amenities, pricePerNight, photos)
-   - TaxiRoute CRUD (id, origin, destination, rateType: per-km|flat, rate)
-   - Booking CRUD (id, listingId or routeId, guestName, email, phone, dates, status: pending|confirmed|cancelled, notes)
-   - Role-based access: admin can write, public can read listings and submit bookings
-   - Seed sample data
-3. Build frontend:
-   - Public: Homepage, Listings page, Listing detail, Taxi booking page
-   - Admin: Dashboard, Listings manager, Taxi rates manager, Bookings manager
-   - Photo upload wired to blob-storage
-   - Search/filter by name, type, price
+1. Update Listing type in main.mo with contactPhone optional field
+2. Update backend.d.ts Listing interface
+3. Update AdminPage: add contactPhone input to listing form, pass it in payload
+4. Update StaysPage ListingCard: add Call + WhatsApp buttons
+5. Update ListingDetailPage: add Call + WhatsApp buttons below amenities
+6. Update HomePage featured stays: add Call button
