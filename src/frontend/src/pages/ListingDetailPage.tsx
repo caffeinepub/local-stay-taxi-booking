@@ -55,7 +55,7 @@ export default function ListingDetailPage() {
   })();
 
   const total = nights * (listing?.pricePerNight ?? 0);
-  const advance = nights > 0 ? Math.max(500, Math.round(total * 0.3)) : 0;
+  const advance = nights > 0 ? Math.max(500, Math.round(total * 0.2)) : 0;
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText("ishwarbharti615@okaxis");
@@ -395,7 +395,7 @@ export default function ListingDetailPage() {
                   {/* Amount */}
                   <div className="text-center">
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-0.5">
-                      Advance Amount (30%)
+                      Advance Amount (20%)
                     </p>
                     <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-300 tracking-tight">
                       ₹{advance.toLocaleString("en-IN")}
@@ -437,6 +437,19 @@ export default function ListingDetailPage() {
                     Scan QR code with any UPI app (GPay, PhonePe, Paytm) to pay
                     advance
                   </p>
+
+                  {/* Non-refundable notice */}
+                  <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-700 rounded-xl px-3 py-2">
+                    <span className="text-red-500 text-base mt-0.5">🚫</span>
+                    <p className="text-xs text-red-800 dark:text-red-300 leading-snug font-semibold">
+                      बुकिंग Amount Refundable नहीं होगा।
+                      <br />
+                      <span className="font-normal">
+                        Booking amount is non-refundable. Once paid, advance
+                        will not be returned under any circumstances.
+                      </span>
+                    </p>
+                  </div>
 
                   {/* Note */}
                   <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2">

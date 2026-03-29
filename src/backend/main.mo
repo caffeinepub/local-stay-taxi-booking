@@ -48,6 +48,7 @@ actor {
     isActive : Bool;
   };
 
+  // Original TaxiRoute type - kept unchanged for stable variable compatibility
   public type TaxiRoute = {
     id : Text;
     origin : Text;
@@ -56,6 +57,27 @@ actor {
     rate : Float;
     estimatedKm : ?Float;
     isActive : Bool;
+  };
+
+  // Extra fields stored separately to avoid migration issues
+  public type TaxiExtra = {
+    driverName : ?Text;
+    carModel : ?Text;
+    photo : ?Storage.ExternalBlob;
+  };
+
+  // Combined V2 type for API (what the frontend sees)
+  public type TaxiRouteV2 = {
+    id : Text;
+    origin : Text;
+    destination : Text;
+    rateType : TaxiRateType;
+    rate : Float;
+    estimatedKm : ?Float;
+    isActive : Bool;
+    driverName : ?Text;
+    carModel : ?Text;
+    photo : ?Storage.ExternalBlob;
   };
 
   public type Booking = {
@@ -92,10 +114,10 @@ actor {
 
   // State
   let listings = Map.empty<Text, Listing>();
-  let taxiRoutes = Map.empty<Text, TaxiRoute>();
+  let taxiRoutes = Map.empty<Text, TaxiRoute>(); // original, stable type unchanged
+  let taxiExtras = Map.empty<Text, TaxiExtra>(); // new stable var for extra fields
   let bookings = Map.empty<Text, Booking>();
   let userProfiles = Map.empty<Principal, UserProfile>();
-  // Separate map for listing contact phones (avoids migration issues)
   let listingPhones = Map.empty<Text, Text>();
 
   // Authorization setup
@@ -104,6 +126,26 @@ actor {
 
   // File Storage
   include MixinStorage();
+
+  // Helper: merge TaxiRoute + TaxiExtra -> TaxiRouteV2
+  func mergeRoute(route : TaxiRoute) : TaxiRouteV2 {
+    let extra : TaxiExtra = switch (taxiExtras.get(route.id)) {
+      case (?e) e;
+      case null { { driverName = null; carModel = null; photo = null } };
+    };
+    {
+      id = route.id;
+      origin = route.origin;
+      destination = route.destination;
+      rateType = route.rateType;
+      rate = route.rate;
+      estimatedKm = route.estimatedKm;
+      isActive = route.isActive;
+      driverName = extra.driverName;
+      carModel = extra.carModel;
+      photo = extra.photo;
+    };
+  };
 
   // Any authenticated user can claim admin (single-owner app)
   public shared ({ caller }) func claimFirstAdmin() : async Bool {
@@ -149,14 +191,16 @@ actor {
     };
   };
 
-  public query ({ caller }) func getActiveTaxiRoutes() : async [TaxiRoute] {
-    taxiRoutes.values().toArray().filter(func(route) { route.isActive });
+  public query ({ caller }) func getActiveTaxiRoutes() : async [TaxiRouteV2] {
+    taxiRoutes.values().toArray()
+      .filter(func(route : TaxiRoute) : Bool { route.isActive })
+      .map(mergeRoute);
   };
 
-  public query ({ caller }) func getTaxiRoute(id : Text) : async TaxiRoute {
+  public query ({ caller }) func getTaxiRoute(id : Text) : async TaxiRouteV2 {
     switch (taxiRoutes.get(id)) {
       case (null) { Runtime.trap("Taxi route not found") };
-      case (?route) { route };
+      case (?route) { mergeRoute(route) };
     };
   };
 
@@ -225,25 +269,54 @@ actor {
     listingPhones.remove(id);
   };
 
-  public shared ({ caller }) func createTaxiRoute(route : TaxiRoute) : async TaxiRoute {
+  public shared ({ caller }) func createTaxiRoute(route : TaxiRouteV2) : async TaxiRouteV2 {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Only admins can create taxi routes");
     };
-    let newRoute : TaxiRoute = { route with id = generateId("taxiRoute") };
-    taxiRoutes.add(newRoute.id, newRoute);
-    newRoute;
+    let newId = generateId("taxiRoute");
+    let baseRoute : TaxiRoute = {
+      id = newId;
+      origin = route.origin;
+      destination = route.destination;
+      rateType = route.rateType;
+      rate = route.rate;
+      estimatedKm = route.estimatedKm;
+      isActive = route.isActive;
+    };
+    let extra : TaxiExtra = {
+      driverName = route.driverName;
+      carModel = route.carModel;
+      photo = route.photo;
+    };
+    taxiRoutes.add(newId, baseRoute);
+    taxiExtras.add(newId, extra);
+    mergeRoute(baseRoute);
   };
 
-  public shared ({ caller }) func updateTaxiRoute(id : Text, route : TaxiRoute) : async TaxiRoute {
+  public shared ({ caller }) func updateTaxiRoute(id : Text, route : TaxiRouteV2) : async TaxiRouteV2 {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Only admins can update taxi routes");
     };
     switch (taxiRoutes.get(id)) {
       case (null) { Runtime.trap("Taxi route not found") };
       case (?_) {
-        let updatedRoute : TaxiRoute = { route with id };
+        let updatedRoute : TaxiRoute = {
+          id;
+          origin = route.origin;
+          destination = route.destination;
+          rateType = route.rateType;
+          rate = route.rate;
+          estimatedKm = route.estimatedKm;
+          isActive = route.isActive;
+        };
+        let extra : TaxiExtra = {
+          driverName = route.driverName;
+          carModel = route.carModel;
+          photo = route.photo;
+        };
         taxiRoutes.add(id, updatedRoute);
-        updatedRoute;
+        taxiExtras.add(id, extra);
+        mergeRoute(updatedRoute);
       };
     };
   };
@@ -253,6 +326,7 @@ actor {
       Runtime.trap("Only admins can delete taxi routes");
     };
     taxiRoutes.remove(id);
+    taxiExtras.remove(id);
   };
 
   public query ({ caller }) func getAllBookings() : async [Booking] {

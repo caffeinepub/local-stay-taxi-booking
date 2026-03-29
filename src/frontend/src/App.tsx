@@ -16,6 +16,7 @@ import ListingDetailPage from "./pages/ListingDetailPage";
 import RestaurantsPage from "./pages/RestaurantsPage";
 import StaysPage from "./pages/StaysPage";
 import TaxisPage from "./pages/TaxisPage";
+import TermsPage from "./pages/TermsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 2 } },
@@ -70,6 +71,11 @@ const bookingStatusRoute = createRoute({
   path: "/booking-status",
   component: BookingStatusPage,
 });
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: TermsPage,
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -79,6 +85,7 @@ const routeTree = rootRoute.addChildren([
   restaurantsRoute,
   adminRoute,
   bookingStatusRoute,
+  termsRoute,
 ]);
 
 const router = createRouter({ routeTree });

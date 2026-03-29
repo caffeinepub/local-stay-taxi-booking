@@ -38,12 +38,12 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-xs">
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center" data-ocid="nav.link">
           <img
-            src="/assets/generated/stay-easy-logo-transparent.dim_480x140.png"
+            src="/assets/generated/stay-easy-logo-transparent.dim_560x160.png"
             alt="Stay Easy"
-            className="h-10 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
         </Link>
 

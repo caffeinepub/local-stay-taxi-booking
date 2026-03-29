@@ -22,6 +22,21 @@ export interface TaxiRoute {
     isActive: boolean;
     estimatedKm?: number;
     rateType: TaxiRateType;
+    driverName?: string;
+    carModel?: string;
+    photo?: ExternalBlob;
+}
+export interface TaxiRouteV2 {
+    id: string;
+    destination: string;
+    origin: string;
+    rate: number;
+    isActive: boolean;
+    estimatedKm?: number;
+    rateType: TaxiRateType;
+    driverName?: string;
+    carModel?: string;
+    photo?: ExternalBlob;
 }
 export interface Listing {
     id: string;
@@ -83,18 +98,18 @@ export interface backendInterface {
     claimFirstAdmin(): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createListing(listing: Listing): Promise<Listing>;
-    createTaxiRoute(route: TaxiRoute): Promise<TaxiRoute>;
+    createTaxiRoute(route: TaxiRouteV2): Promise<TaxiRouteV2>;
     deleteBooking(id: string): Promise<void>;
     deleteListing(id: string): Promise<void>;
     deleteTaxiRoute(id: string): Promise<void>;
     getActiveListings(): Promise<Array<Listing>>;
-    getActiveTaxiRoutes(): Promise<Array<TaxiRoute>>;
+    getActiveTaxiRoutes(): Promise<Array<TaxiRouteV2>>;
     getAllBookings(): Promise<Array<Booking>>;
     getAllListingPhones(): Promise<Array<[string, string]>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getListing(id: string): Promise<Listing>;
-    getTaxiRoute(id: string): Promise<TaxiRoute>;
+    getTaxiRoute(id: string): Promise<TaxiRouteV2>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
@@ -102,6 +117,6 @@ export interface backendInterface {
     submitBooking(booking: Booking): Promise<Booking>;
     updateBookingStatus(id: string, status: BookingStatus): Promise<Booking>;
     updateListing(id: string, listing: Listing): Promise<Listing>;
-    updateTaxiRoute(id: string, route: TaxiRoute): Promise<TaxiRoute>;
+    updateTaxiRoute(id: string, route: TaxiRouteV2): Promise<TaxiRouteV2>;
     getBookingsByPhone(phone: string): Promise<Array<Booking>>;
 }

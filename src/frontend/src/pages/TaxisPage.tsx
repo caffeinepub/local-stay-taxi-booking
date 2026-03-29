@@ -12,12 +12,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Car, Loader2, MapPin } from "lucide-react";
+import { ArrowRight, Car, Loader2, MapPin, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookingStatus, BookingType } from "../backend";
-import type { TaxiRoute } from "../backend";
 import { useGetActiveTaxiRoutes, useSubmitBooking } from "../hooks/useQueries";
+import type { TaxiRouteExtended } from "../types/extendedTypes";
 
 type TripType = "oneside" | "roundtrip" | "multicity";
 
@@ -30,7 +30,7 @@ const TRIP_OPTIONS: { value: TripType; label: string; id: string }[] = [
 function TaxiBookingForm({
   route,
   onClose,
-}: { route: TaxiRoute; onClose: () => void }) {
+}: { route: TaxiRouteExtended; onClose: () => void }) {
   const submitBooking = useSubmitBooking();
   const [tripType, setTripType] = useState<TripType>("oneside");
   const [form, setForm] = useState({
@@ -103,6 +103,29 @@ function TaxiBookingForm({
       className="space-y-4"
       data-ocid="taxi-booking.panel"
     >
+      {/* Vehicle info summary */}
+      {(route.carModel || route.driverName) && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center gap-3">
+          {route.photo && (
+            <img
+              src={route.photo.getDirectURL()}
+              alt="Taxi"
+              className="w-14 h-12 object-cover rounded-lg shrink-0"
+            />
+          )}
+          <div>
+            {route.carModel && (
+              <p className="font-semibold text-sm">{route.carModel}</p>
+            )}
+            {route.driverName && (
+              <p className="text-xs text-muted-foreground">
+                Driver: {route.driverName}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Trip Type Radio Buttons */}
       <div>
         <p className="text-sm font-semibold mb-2">Trip Type</p>
@@ -136,7 +159,7 @@ function TaxiBookingForm({
       {/* Route summary */}
       <div className="bg-muted rounded-xl p-3 text-sm">
         <p className="font-semibold">
-          {route.origin} → {route.destination}
+          {route.origin} &rarr; {route.destination}
           {tripType === "roundtrip" && ` → ${route.origin}`}
         </p>
         <p className="text-muted-foreground mt-0.5">
@@ -294,71 +317,111 @@ function TaxiBookingForm({
   );
 }
 
-function TaxiRouteCard({ route, index }: { route: TaxiRoute; index: number }) {
+function TaxiRouteCard({
+  route,
+  index,
+}: { route: TaxiRouteExtended; index: number }) {
   const [open, setOpen] = useState(false);
   const isPerKm = (route.rateType as string) === "perKm";
   return (
     <div
-      className="bg-card rounded-2xl p-5 shadow-card listing-card-hover"
+      className="bg-card rounded-2xl overflow-hidden shadow-card listing-card-hover"
       data-ocid={`taxi.item.${index + 1}`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Car className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <Badge variant="secondary" className="text-xs mb-1">
-              {isPerKm ? "Per Km" : "Flat Rate"}
-            </Badge>
-            <p className="font-semibold">{route.origin}</p>
-          </div>
+      {/* Taxi Photo */}
+      {route.photo ? (
+        <div className="h-44 overflow-hidden">
+          <img
+            src={route.photo.getDirectURL()}
+            alt={route.carModel || "Taxi"}
+            className="w-full h-full object-cover"
+          />
         </div>
-        <div className="text-right">
-          <p className="text-primary font-bold text-2xl">
-            ₹{route.rate}
-            {isPerKm ? "/km" : ""}
-          </p>
-          {isPerKm && route.estimatedKm && (
-            <p className="text-xs text-muted-foreground">
-              {route.estimatedKm} km est.
-            </p>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-        <MapPin className="w-3.5 h-3.5 shrink-0" />
-        <span>{route.origin}</span>
-        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-        <MapPin className="w-3.5 h-3.5 shrink-0" />
-        <span>{route.destination}</span>
-      </div>
-      {isPerKm && route.estimatedKm && (
-        <div className="bg-muted rounded-lg p-2 text-xs text-muted-foreground mb-4">
-          Estimated total: ₹{(route.rate * route.estimatedKm).toFixed(2)}
+      ) : (
+        <div className="h-36 bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+          <Car className="w-12 h-12 text-amber-400" />
         </div>
       )}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-full" data-ocid={`taxi.item.${index + 1}`}>
-            Book This Route
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-md" data-ocid="taxi-booking.dialog">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              Book Taxi
-            </DialogTitle>
-          </DialogHeader>
-          <TaxiBookingForm route={route} onClose={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
+
+      <div className="p-5">
+        {/* Car Model & Driver */}
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            {route.carModel ? (
+              <h3 className="font-bold text-lg leading-tight">
+                {route.carModel}
+              </h3>
+            ) : (
+              <h3 className="font-bold text-lg leading-tight text-muted-foreground">
+                Taxi
+              </h3>
+            )}
+            {route.driverName && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                <User className="w-3.5 h-3.5" />
+                <span>Driver: {route.driverName}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-primary font-bold text-2xl">
+              ₹{route.rate}
+              {isPerKm ? "/km" : ""}
+            </p>
+            {isPerKm && route.estimatedKm && (
+              <p className="text-xs text-muted-foreground">
+                {route.estimatedKm} km est.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Route */}
+        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
+          <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+          <span className="font-medium text-foreground">{route.origin}</span>
+          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+          <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+          <span className="font-medium text-foreground">
+            {route.destination}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <Badge variant="secondary" className="text-xs">
+            {isPerKm ? "Per Km" : "Flat Rate"}
+          </Badge>
+          {isPerKm && route.estimatedKm && (
+            <Badge variant="outline" className="text-xs">
+              Est. ₹{(route.rate * route.estimatedKm).toFixed(0)}
+            </Badge>
+          )}
+        </div>
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full" data-ocid={`taxi.item.${index + 1}`}>
+              Book This Taxi
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md" data-ocid="taxi-booking.dialog">
+            <DialogHeader>
+              <DialogTitle className="font-display text-xl">
+                Book Taxi
+                {route.carModel ? ` — ${route.carModel}` : ""}
+              </DialogTitle>
+            </DialogHeader>
+            <TaxiBookingForm route={route} onClose={() => setOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
 
 export default function TaxisPage() {
-  const { data: routes, isLoading } = useGetActiveTaxiRoutes();
+  const { data: rawRoutes, isLoading } = useGetActiveTaxiRoutes();
+  const routes = rawRoutes as TaxiRouteExtended[] | undefined;
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -380,7 +443,7 @@ export default function TaxisPage() {
           {[1, 2, 3].map((i) => (
             <Skeleton
               key={i}
-              className="h-52 rounded-2xl"
+              className="h-64 rounded-2xl"
               data-ocid="taxis.loading_state"
             />
           ))}

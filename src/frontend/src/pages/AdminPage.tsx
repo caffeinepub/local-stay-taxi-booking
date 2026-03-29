@@ -40,7 +40,7 @@ import {
   type ListingType,
   type TaxiRateType,
 } from "../backend";
-import type { Booking, Listing, TaxiRoute } from "../backend";
+import type { Booking, Listing } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useClaimFirstAdmin,
@@ -58,6 +58,7 @@ import {
   useUpdateListing,
   useUpdateTaxiRoute,
 } from "../hooks/useQueries";
+import type { TaxiRouteExtended } from "../types/extendedTypes";
 
 // ─── Listing Form ────────────────────────────────────────────────────────────
 
@@ -424,6 +425,9 @@ interface TaxiFormData {
   rate: string;
   estimatedKm: string;
   isActive: boolean;
+  driverName: string;
+  carModel: string;
+  photo: ExternalBlob | null;
 }
 
 const defaultTaxiForm = (): TaxiFormData => ({
@@ -433,6 +437,9 @@ const defaultTaxiForm = (): TaxiFormData => ({
   rate: "",
   estimatedKm: "",
   isActive: true,
+  driverName: "",
+  carModel: "",
+  photo: null,
 });
 
 function TaxiFormDialog({
@@ -442,10 +449,13 @@ function TaxiFormDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  existing?: TaxiRoute;
+  existing?: TaxiRouteExtended;
 }) {
   const createRoute = useCreateTaxiRoute();
   const updateRoute = useUpdateTaxiRoute();
+  const taxiPhotoRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [form, setForm] = useState<TaxiFormData>(() =>
     existing
       ? {
@@ -455,16 +465,33 @@ function TaxiFormDialog({
           rate: String(existing.rate),
           estimatedKm: existing.estimatedKm ? String(existing.estimatedKm) : "",
           isActive: existing.isActive,
+          driverName: existing.driverName ?? "",
+          carModel: existing.carModel ?? "",
+          photo: existing.photo ?? null,
         }
       : defaultTaxiForm(),
   );
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const blob = ExternalBlob.fromBytes(new Uint8Array(buffer));
+      setForm((f) => ({ ...f, photo: blob }));
+    } finally {
+      setUploadingPhoto(false);
+      if (taxiPhotoRef.current) taxiPhotoRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     if (!form.origin || !form.destination || !form.rate) {
       toast.error("Please fill in all required fields.");
       return;
     }
-    const payload: TaxiRoute = {
+    const payload: TaxiRouteExtended = {
       id: existing?.id ?? crypto.randomUUID(),
       origin: form.origin,
       destination: form.destination,
@@ -474,13 +501,19 @@ function TaxiFormDialog({
         ? Number.parseFloat(form.estimatedKm)
         : undefined,
       isActive: form.isActive,
+      driverName: form.driverName || undefined,
+      carModel: form.carModel || undefined,
+      photo: form.photo ?? undefined,
     };
     try {
       if (existing) {
-        await updateRoute.mutateAsync({ id: existing.id, route: payload });
+        await updateRoute.mutateAsync({
+          id: existing.id,
+          route: payload as any,
+        });
         toast.success("Route updated!");
       } else {
-        await createRoute.mutateAsync(payload);
+        await createRoute.mutateAsync(payload as any);
         toast.success("Route created!");
       }
       onClose();
@@ -493,7 +526,10 @@ function TaxiFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md" data-ocid="taxi.dialog">
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="taxi.dialog"
+      >
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
             {existing ? "Edit Route" : "Add Taxi Route"}
@@ -568,6 +604,81 @@ function TaxiFormDialog({
               data-ocid="taxi.input"
             />
           </div>
+
+          {/* Car Model */}
+          <div>
+            <Label>Car Model</Label>
+            <Input
+              value={form.carModel}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, carModel: e.target.value }))
+              }
+              placeholder="e.g. Swift Dzire, Innova, Tempo"
+              data-ocid="taxi.input"
+            />
+          </div>
+
+          {/* Driver Name */}
+          <div>
+            <Label>Driver Name</Label>
+            <Input
+              value={form.driverName}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, driverName: e.target.value }))
+              }
+              placeholder="Driver ka naam"
+              data-ocid="taxi.input"
+            />
+          </div>
+
+          {/* Taxi Photo */}
+          <div>
+            <Label className="mb-2 block">Taxi Photo</Label>
+            {form.photo && (
+              <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border mb-2">
+                <img
+                  src={form.photo.getDirectURL()}
+                  alt="Taxi"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, photo: null }))}
+                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center"
+                  data-ocid="taxi.delete_button"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <input
+              ref={taxiPhotoRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => taxiPhotoRef.current?.click()}
+              disabled={uploadingPhoto}
+              data-ocid="taxi.upload_button"
+            >
+              {uploadingPhoto ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />{" "}
+                  {form.photo ? "Change Photo" : "Add Photo"}
+                </>
+              )}
+            </Button>
+          </div>
+
           <div className="flex items-center gap-3">
             <Switch
               id="taxiActive"
@@ -807,13 +918,14 @@ function ListingsTab() {
 // ─── Taxi Routes Tab ──────────────────────────────────────────────────────────
 
 function TaxiRoutesTab() {
-  const { data: routes, isLoading } = useGetActiveTaxiRoutes();
+  const { data: rawRoutes, isLoading } = useGetActiveTaxiRoutes();
+  const routes = rawRoutes as TaxiRouteExtended[] | undefined;
   const deleteRoute = useDeleteTaxiRoute();
   const [formOpen, setFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<TaxiRoute | undefined>();
+  const [editTarget, setEditTarget] = useState<TaxiRouteExtended | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const openEdit = (r: TaxiRoute) => {
+  const openEdit = (r: TaxiRouteExtended) => {
     setEditTarget(r);
     setFormOpen(true);
   };
@@ -863,12 +975,15 @@ function TaxiRoutesTab() {
           No taxi routes yet.
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
           <Table data-ocid="routes.table">
             <TableHeader>
               <TableRow>
+                <TableHead>Photo</TableHead>
                 <TableHead>Origin</TableHead>
                 <TableHead>Destination</TableHead>
+                <TableHead>Car Model</TableHead>
+                <TableHead>Driver</TableHead>
                 <TableHead>Rate Type</TableHead>
                 <TableHead>Rate</TableHead>
                 <TableHead>Est. Km</TableHead>
@@ -879,8 +994,31 @@ function TaxiRoutesTab() {
             <TableBody>
               {routes.map((r, i) => (
                 <TableRow key={r.id} data-ocid={`routes.row.${i + 1}`}>
+                  <TableCell>
+                    {r.photo ? (
+                      <img
+                        src={r.photo.getDirectURL()}
+                        alt="Taxi"
+                        className="w-12 h-10 object-cover rounded-md"
+                      />
+                    ) : (
+                      <div className="w-12 h-10 bg-muted rounded-md flex items-center justify-center text-muted-foreground text-xs">
+                        No photo
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{r.origin}</TableCell>
                   <TableCell>{r.destination}</TableCell>
+                  <TableCell className="text-sm">
+                    {r.carModel ?? (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {r.driverName ?? (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
                       {(r.rateType as string) === "perKm" ? "Per Km" : "Flat"}

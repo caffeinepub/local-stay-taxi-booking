@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 
 export default function Footer() {
@@ -14,7 +15,7 @@ export default function Footer() {
                 <MapPin className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
               <span className="font-display text-lg font-semibold">
-                LocalStay
+                Stay Easy
               </span>
             </div>
             <p className="text-sm opacity-70 leading-relaxed">
@@ -28,9 +29,9 @@ export default function Footer() {
               Services
             </h4>
             <ul className="space-y-2 text-sm opacity-75">
-              <li>Hotel & Homestay Stays</li>
-              <li>Taxi & Cab Bookings</li>
-              <li>Local Experiences</li>
+              <li>Hotel &amp; Homestay Stays</li>
+              <li>Taxi &amp; Cab Bookings</li>
+              <li>Restaurant &amp; Dhaba</li>
               <li>Group Packages</li>
             </ul>
           </div>
@@ -41,15 +42,28 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm opacity-75">
               <li>How It Works</li>
-              <li>Cancellation Policy</li>
-              <li>Privacy Policy</li>
-              <li>Terms of Service</li>
+              <li>
+                <Link
+                  to="/booking-status"
+                  className="hover:opacity-100 underline underline-offset-2"
+                >
+                  Booking Status
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/terms"
+                  className="hover:opacity-100 underline underline-offset-2"
+                >
+                  Terms &amp; Conditions
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm opacity-60">
-          <span>© {year} LocalStay. All rights reserved.</span>
+          <span>© {year} Stay Easy. All rights reserved.</span>
           <a
             href={utmLink}
             target="_blank"
